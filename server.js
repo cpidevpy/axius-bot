@@ -478,7 +478,6 @@ app.listen(PORT, () => {
     console.log(`🚀 Сервер запущен на порту ${PORT}`);
 });    if (fs.existsSync(filepath)) return JSON.parse(fs.readFileSync(filepath));
     return { accounts: {}, commands: {}, profiles: {}, stats: {} };
-}
 
 function saveUserData(userId, data) {
     fs.writeFileSync(path.join(DATA_DIR, `user_${userId}.json`), JSON.stringify(data, null, 2));
