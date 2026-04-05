@@ -233,7 +233,7 @@ app.post('/webhook/:token', async (req, res) => {
 
 app.listen(PORT, () => {
     console.log(`🚀 Сервер запущен на порту ${PORT}`);
-});}
+});
 
 // Загрузка данных пользователя
 function loadUserData(userId) {
