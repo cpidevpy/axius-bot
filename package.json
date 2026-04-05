@@ -1,0 +1,13 @@
+{
+  "name": "axius-telegram-bot",
+  "version": "1.0.0",
+  "description": "Telegram Bot with visual constructor",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "axios": "^1.6.0"
+  }
+}
