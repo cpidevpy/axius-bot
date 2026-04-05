@@ -13,7 +13,7 @@
         body.dark .card { background: #121624; }
         h1, h2 { margin-bottom: 20px; }
         h1 { background: linear-gradient(135deg, #6c63ff, #a363d9); -webkit-background-clip: text; background-clip: text; color: transparent; }
-        input, textarea, select { width: 100%; padding: 14px; border-radius: 20px; border: 1px solid #eef2f9; margin-bottom: 12px; font-family: inherit; }
+        input, textarea, select { width: 100%; padding: 14px; border-radius: 20px; border: 1px solid #eef2f9; margin-bottom: 12px; font-family: inherit; background: white; }
         body.dark input, body.dark textarea, body.dark select { background: #1e233b; border-color: #2a2f48; color: white; }
         button { background: #6c63ff; color: white; border: none; padding: 12px 24px; border-radius: 30px; cursor: pointer; font-weight: 600; transition: 0.2s; }
         button:hover { transform: scale(0.98); }
@@ -35,6 +35,402 @@
         .tab-content { display: none; }
         .tab-content.active { display: block; }
         .buttons-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; align-items: center; }
+        .badge { background: #6c63ff20; padding: 4px 12px; border-radius: 20px; font-size: 12px; }
+        .login-form { max-width: 400px; margin: 0 auto; text-align: center; }
+        .switch-form { margin-top: 16px; color: #6c63ff; cursor: pointer; }
+        .error { color: #dc3545; font-size: 14px; margin-top: 8px; }
+        .theme-btn { background: #f0f2f8; border: none; padding: 10px 20px; border-radius: 30px; cursor: pointer; }
+        body.dark .theme-btn { background: #1e233b; color: white; }
+        .success { color: #28a745; font-size: 14px; margin-top: 8px; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>🤖 Axius Bot — конструктор ботов</h1>
+        <button class="theme-btn" onclick="toggleTheme()">🌓 Тема</button>
+    </div>
+    
+    <!-- Экран входа/регистрации -->
+    <div id="authScreen" class="card">
+        <div id="loginForm" class="login-form">
+            <h2>🔐 Вход</h2>
+            <input type="text" id="loginUsername" placeholder="Логин">
+            <input type="password" id="loginPassword" placeholder="Пароль">
+            <button onclick="login()">Войти</button>
+            <div class="switch-form" onclick="showRegister()">Нет аккаунта? Зарегистрироваться</div>
+            <div id="authError" class="error"></div>
+        </div>
+        
+        <div id="registerForm" class="login-form" style="display: none;">
+            <h2>📝 Регистрация</h2>
+            <input type="text" id="regUsername" placeholder="Логин">
+            <input type="password" id="regPassword" placeholder="Пароль">
+            <input type="password" id="regPassword2" placeholder="Повторите пароль">
+            <button onclick="register()">Зарегистрироваться</button>
+            <div class="switch-form" onclick="showLogin()">Уже есть аккаунт? Войти</div>
+            <div id="regError" class="error"></div>
+        </div>
+    </div>
+    
+    <!-- Основной экран -->
+    <div id="appScreen" style="display: none;">
+        <div class="card">
+            <div class="user-info">
+                <span>👤 <span id="currentUser"></span></span>
+                <button class="btn-danger" onclick="logout()" style="padding: 8px 16px;">Выйти</button>
+            </div>
+        </div>
+        
+        <div class="card">
+            <h2>➕ Добавить бота</h2>
+            <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                <input type="text" id="botName" placeholder="Имя бота" style="flex: 2;">
+                <input type="text" id="botToken" placeholder="Токен от @BotFather" style="flex: 3;">
+                <button onclick="addBot()">Добавить</button>
+            </div>
+        </div>
+        
+        <div class="card">
+            <h2>📋 Мои боты</h2>
+            <div class="bots-grid" id="botsList"></div>
+        </div>
+        
+        <div class="card" id="botPanel" style="display: none;">
+            <h2>⚙️ <span id="selectedBotName"></span></h2>
+            
+            <div class="tabs">
+                <div class="tab active" data-tab="commands">📝 Команды</div>
+                <div class="tab" data-tab="profile">👤 Профиль</div>
+                <div class="tab" data-tab="chats">💬 Чаты</div>
+            </div>
+            
+            <div class="tab-content active" id="tab-commands">
+                <div id="commandsList"></div>
+                <h3>➕ Новая команда</h3>
+                <input type="text" id="newCmdName" placeholder="/команда">
+                <textarea id="newCmdResponse" rows="3" placeholder="Ответ бота... Используйте {user} {date} {time}"></textarea>
+                <div id="buttonsEditor"></div>
+                <button onclick="addButtonField()" class="btn-outline" style="margin-bottom: 12px;">+ Добавить кнопку</button>
+                <button onclick="addCommand()">Сохранить команду</button>
+            </div>
+            
+            <div class="tab-content" id="tab-profile">
+                <textarea id="profileGreeting" rows="3" placeholder="Приветственное сообщение для /start"></textarea>
+                <textarea id="profileBio" rows="3" placeholder="Описание бота"></textarea>
+                <button onclick="saveProfile()">Сохранить профиль</button>
+            </div>
+            
+            <div class="tab-content" id="tab-chats">
+                <div id="chatsList"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let currentUser = null;
+    let sessionToken = null;
+    let currentAccountId = null;
+    let tempButtons = [];
+    
+    async function register() {
+        const username = document.getElementById('regUsername').value.trim();
+        const password = document.getElementById('regPassword').value;
+        const password2 = document.getElementById('regPassword2').value;
+        
+        if (!username || !password) {
+            document.getElementById('regError').innerText = 'Заполните все поля';
+            return;
+        }
+        if (password !== password2) {
+            document.getElementById('regError').innerText = 'Пароли не совпадают';
+            return;
+        }
+        
+        const res = await fetch('/api/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ login: username, password })
+        });
+        const data = await res.json();
+        
+        if (data.success) {
+            showLogin();
+            document.getElementById('authError').innerText = 'Регистрация успешна! Теперь войдите.';
+        } else {
+            document.getElementById('regError').innerText = data.error;
+        }
+    }
+    
+    async function login() {
+        const username = document.getElementById('loginUsername').value.trim();
+        const password = document.getElementById('loginPassword').value;
+        
+        if (!username || !password) {
+            document.getElementById('authError').innerText = 'Заполните все поля';
+            return;
+        }
+        
+        const res = await fetch('/api/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ login: username, password })
+        });
+        const data = await res.json();
+        
+        if (data.success) {
+            currentUser = username;
+            sessionToken = data.sessionToken;
+            localStorage.setItem('axius_user', username);
+            localStorage.setItem('axius_session', sessionToken);
+            document.getElementById('authScreen').style.display = 'none';
+            document.getElementById('appScreen').style.display = 'block';
+            document.getElementById('currentUser').innerText = username;
+            await loadBots();
+        } else {
+            document.getElementById('authError').innerText = data.error;
+        }
+    }
+    
+    function logout() {
+        currentUser = null;
+        sessionToken = null;
+        localStorage.removeItem('axius_user');
+        localStorage.removeItem('axius_session');
+        document.getElementById('authScreen').style.display = 'block';
+        document.getElementById('appScreen').style.display = 'none';
+        document.getElementById('botPanel').style.display = 'none';
+        showLogin();
+    }
+    
+    function showRegister() {
+        document.getElementById('loginForm').style.display = 'none';
+        document.getElementById('registerForm').style.display = 'block';
+        document.getElementById('authError').innerText = '';
+        document.getElementById('regError').innerText = '';
+    }
+    
+    function showLogin() {
+        document.getElementById('loginForm').style.display = 'block';
+        document.getElementById('registerForm').style.display = 'none';
+        document.getElementById('authError').innerText = '';
+        document.getElementById('regError').innerText = '';
+    }
+    
+    function getHeaders() {
+        return {
+            'Content-Type': 'application/json',
+            'login': currentUser,
+            'sessiontoken': sessionToken
+        };
+    }
+    
+    async function loadBots() {
+        const res = await fetch('/api/user/accounts', { headers: getHeaders() });
+        const accounts = await res.json();
+        const container = document.getElementById('botsList');
+        
+        if (Object.keys(accounts).length === 0) {
+            container.innerHTML = '<div style="text-align:center; color:#8e98b0;">У вас пока нет ботов. Добавьте первого!</div>';
+            return;
+        }
+        
+        container.innerHTML = Object.entries(accounts).map(([id, acc]) => `
+            <div class="bot-card" onclick="selectBot('${id}', '${acc.name}')">
+                <div style="font-weight: 700; font-size: 1.1rem;">🤖 ${escapeHtml(acc.name)}</div>
+                <div style="font-size: 12px; color: #8e98b0; margin: 8px 0;">${acc.token ? '🔑 Токен установлен' : '⚠️ Нет токена'}</div>
+                <button onclick="event.stopPropagation(); deleteBot('${id}')" class="btn-danger" style="padding: 6px 12px;">🗑️ Удалить</button>
+            </div>
+        `).join('');
+    }
+    
+    async function selectBot(id, name) {
+        currentAccountId = id;
+        document.getElementById('botPanel').style.display = 'block';
+        document.getElementById('selectedBotName').innerText = name;
+        await loadCommands();
+        await loadProfile();
+        await loadChats();
+    }
+    
+    async function addBot() {
+        const name = document.getElementById('botName').value.trim();
+        const token = document.getElementById('botToken').value.trim();
+        if (!name || !token) return alert('Заполните имя и токен');
+        
+        const id = Date.now().toString();
+        await fetch('/api/user/accounts', {
+            method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify({ id, name, token })
+        });
+        
+        document.getElementById('botName').value = '';
+        document.getElementById('botToken').value = '';
+        loadBots();
+    }
+    
+    async function deleteBot(id) {
+        if (!confirm('Удалить бота? Все команды и чаты будут удалены.')) return;
+        await fetch(`/api/user/accounts/${id}`, { method: 'DELETE', headers: getHeaders() });
+        if (currentAccountId === id) {
+            document.getElementById('botPanel').style.display = 'none';
+            currentAccountId = null;
+        }
+        loadBots();
+    }
+    
+    async function loadCommands() {
+        const res = await fetch(`/api/user/commands/${currentAccountId}`, { headers: getHeaders() });
+        const commands = await res.json();
+        const container = document.getElementById('commandsList');
+        
+        if (!commands.length) {
+            container.innerHTML = '<div style="color: #8e98b0;">Нет команд. Создайте первую!</div>';
+            return;
+        }
+        
+        container.innerHTML = commands.map((cmd, idx) => `
+            <div class="command-item">
+                <div><strong>${escapeHtml(cmd.name)}</strong><div style="font-size: 12px;">${escapeHtml(cmd.response.substring(0, 50))}</div></div>
+                <button onclick="deleteCommand(${idx})" class="btn-danger" style="padding: 6px 12px;">🗑️</button>
+            </div>
+        `).join('');
+    }
+    
+    async function addCommand() {
+        const name = document.getElementById('newCmdName').value.trim();
+        const response = document.getElementById('newCmdResponse').value.trim();
+        if (!name || !response) return alert('Заполните команду и ответ');
+        
+        const res = await fetch(`/api/user/commands/${currentAccountId}`, { headers: getHeaders() });
+        let commands = await res.json();
+        commands.push({ name, response, buttons: tempButtons.filter(b => b.text) });
+        
+        await fetch(`/api/user/commands/${currentAccountId}`, {
+            method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify(commands)
+        });
+        
+        document.getElementById('newCmdName').value = '';
+        document.getElementById('newCmdResponse').value = '';
+        tempButtons = [];
+        renderButtonsEditor();
+        loadCommands();
+    }
+    
+    async function deleteCommand(idx) {
+        const res = await fetch(`/api/user/commands/${currentAccountId}`, { headers: getHeaders() });
+        let commands = await res.json();
+        commands.splice(idx, 1);
+        await fetch(`/api/user/commands/${currentAccountId}`, {
+            method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify(commands)
+        });
+        loadCommands();
+    }
+    
+    function renderButtonsEditor() {
+        const container = document.getElementById('buttonsEditor');
+        if (!tempButtons.length) {
+            container.innerHTML = '<div style="color: #8e98b0; margin: 8px 0;">Нет кнопок</div>';
+            return;
+        }
+        container.innerHTML = tempButtons.map((btn, i) => `
+            <div class="buttons-row">
+                <input type="text" placeholder="Текст" value="${escapeHtml(btn.text)}" onchange="updateBtn(${i}, 'text', this.value)">
+                <input type="text" placeholder="Данные/URL" value="${escapeHtml(btn.data)}" onchange="updateBtn(${i}, 'data', this.value)">
+                <select onchange="updateBtn(${i}, 'type', this.value)">
+                    <option ${btn.type === 'callback' ? 'selected' : ''}>callback</option>
+                    <option ${btn.type === 'url' ? 'selected' : ''}>url</option>
+                </select>
+                <button onclick="removeBtn(${i})" class="btn-danger" style="padding: 8px 12px;">✖</button>
+            </div>
+        `).join('');
+    }
+    
+    function addButtonField() { tempButtons.push({ text: "Кнопка", type: "callback", data: "data" }); renderButtonsEditor(); }
+    window.updateBtn = (i, f, v) => { if (tempButtons[i]) tempButtons[i][f] = v; renderButtonsEditor(); };
+    window.removeBtn = (i) => { tempButtons.splice(i, 1); renderButtonsEditor(); };
+    
+    async function loadProfile() {
+        const res = await fetch(`/api/user/profile/${currentAccountId}`, { headers: getHeaders() });
+        const profile = await res.json();
+        document.getElementById('profileGreeting').value = profile.greeting || '';
+        document.getElementById('profileBio').value = profile.bio || '';
+    }
+    
+    async function saveProfile() {
+        const profile = {
+            greeting: document.getElementById('profileGreeting').value,
+            bio: document.getElementById('profileBio').value
+        };
+        await fetch(`/api/user/profile/${currentAccountId}`, {
+            method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify(profile)
+        });
+        alert('Профиль сохранён');
+    }
+    
+    async function loadChats() {
+        const res = await fetch(`/api/user/chats/${currentAccountId}`, { headers: getHeaders() });
+        const chats = await res.json();
+        const container = document.getElementById('chatsList');
+        
+        if (!chats.length) {
+            container.innerHTML = '<div style="color: #8e98b0;">Нет чатов. Напишите боту первым</div>';
+            return;
+        }
+        
+        container.innerHTML = chats.map(chat => `
+            <div class="command-item">
+                <div><strong>${escapeHtml(chat.userName)}</strong><br><small>ID: ${chat.chatId}</small><div style="font-size: 11px;">${chat.messages.length} сообщений</div></div>
+                <button onclick="deleteChat('${chat.id}')" class="btn-danger">🗑️</button>
+            </div>
+        `).join('');
+    }
+    
+    async function deleteChat(chatKey) {
+        if (!confirm('Удалить всю историю чата?')) return;
+        await fetch(`/api/user/chat/${chatKey}`, { method: 'DELETE', headers: getHeaders() });
+        loadChats();
+    }
+    
+    document.querySelectorAll('.tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            tab.classList.add('active');
+            document.getElementById(`tab-${tab.dataset.tab}`).classList.add('active');
+        });
+    });
+    
+    function toggleTheme() {
+        document.body.classList.toggle('dark');
+        localStorage.setItem('theme', document.body.classList.contains('dark') ? 'dark' : 'light');
+    }
+    
+    function escapeHtml(s) { if (!s) return ''; return s.replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m])); }
+    
+    if (localStorage.getItem('theme') === 'dark') document.body.classList.add('dark');
+    
+    const savedUser = localStorage.getItem('axius_user');
+    const savedSession = localStorage.getItem('axius_session');
+    if (savedUser && savedSession) {
+        currentUser = savedUser;
+        sessionToken = savedSession;
+        document.getElementById('authScreen').style.display = 'none';
+        document.getElementById('appScreen').style.display = 'block';
+        document.getElementById('currentUser').innerText = currentUser;
+        loadBots();
+    }
+</script>
+</body>
+</html>        .buttons-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; align-items: center; }
         .badge { background: #6c63ff20; padding: 4px 12px; border-radius: 20px; font-size: 12px; }
         .login-form { max-width: 400px; margin: 0 auto; text-align: center; }
         .switch-form { margin-top: 16px; color: #6c63ff; cursor: pointer; }
