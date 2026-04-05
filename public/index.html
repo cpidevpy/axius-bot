@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Axius Bot Manager</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: system-ui, sans-serif; background: #f5f7fb; padding: 20px; }
+        .container { max-width: 800px; margin: 0 auto; }
+        .card { background: white; border-radius: 24px; padding: 20px; margin-bottom: 20px; }
+        h1 { margin-bottom: 20px; color: #6c63ff; }
+        input, textarea { width: 100%; padding: 12px; border-radius: 16px; border: 1px solid #ddd; margin-bottom: 12px; }
+        button { background: #6c63ff; color: white; border: none; padding: 12px 24px; border-radius: 30px; cursor: pointer; }
+        .bot-item { background: #f0f2f8; padding: 12px; border-radius: 16px; margin-bottom: 8px; display: flex; justify-content: space-between; }
+        .command-item { background: #f8f9ff; padding: 10px; border-radius: 12px; margin-bottom: 8px; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>🤖 Axius Bot Manager</h1>
+    
+    <div class="card">
+        <h2>➕ Добавить бота</h2>
+        <input type="text" id="botName" placeholder="Имя бота">
+        <input type="text" id="botToken" placeholder="Токен от @BotFather">
+        <button onclick="addBot()">Добавить бота</button>
+    </div>
+    
+    <div class="card">
+        <h2>📋 Мои боты</h2>
+        <div id="botsList"></div>
+    </div>
+</div>
+
+<script>
+    async function loadBots() {
+        const res = await fetch('/api/accounts');
+        const accounts = await res.json();
+        const container = document.getElementById('botsList');
+        container.innerHTML = Object.entries(accounts).map(([id, acc]) => `
+            <div class="bot-item">
+                <div><strong>${acc.name}</strong><br><small>${acc.token?.substring(0,20)}...</small></div>
+                <button onclick="deleteBot('${id}')" style="background:#dc3545; padding:6px 12px;">Удалить</button>
+            </div>
+        `).join('');
+    }
+    
+    async function addBot() {
+        const name = document.getElementById('botName').value;
+        const token = document.getElementById('botToken').value;
+        if (!name || !token) return alert('Заполните поля');
+        const id = Date.now().toString();
+        await fetch('/api/accounts', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id, name, token })
+        });
+        document.getElementById('botName').value = '';
+        document.getElementById('botToken').value = '';
+        loadBots();
+    }
+    
+    async function deleteBot(id) {
+        if (!confirm('Удалить бота?')) return;
+        await fetch(`/api/accounts/${id}`, { method: 'DELETE' });
+        loadBots();
+    }
+    
+    loadBots();
+</script>
+</body>
+</html>
