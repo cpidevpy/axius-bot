@@ -1407,7 +1407,6 @@ app.listen(PORT, () => {
     saveUsers(users);
     
     res.json({ success: true, userId: login, sessionToken, message: 'Вход выполнен' });
-});
 
 // Проверка сессии
 app.post('/api/verify', (req, res) => {
