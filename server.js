@@ -859,7 +859,6 @@ app.listen(PORT, () => {
     }, 2000);
 });    const hmac = require('crypto').createHmac('sha256', secret).update(checkString).digest('hex');
     return hmac === hash;
-}
 
 // API для авторизации
 app.post('/api/auth', (req, res) => {
