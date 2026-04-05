@@ -1047,7 +1047,7 @@ app.post('/webhook/:token', async (req, res) => {
 
 app.listen(PORT, () => {
     console.log(`🚀 Сервер запущен на порту ${PORT}`);
-});}
+});
 
 // Регистрация webhook
 async function registerWebhook(botToken, botId) {
