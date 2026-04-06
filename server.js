@@ -1399,7 +1399,7 @@ app.listen(PORT, () => {
             });
         }
     }, 2000);
-});        return res.status(401).json({ error: 'Неверный логин или пароль' });
+    return res.status(401).json({ error: 'Неверный логин или пароль' });
     
     const sessionToken = crypto.randomBytes(32).toString('hex');
     user.lastLogin = new Date().toISOString();
