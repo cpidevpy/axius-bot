@@ -387,7 +387,7 @@ app.listen(PORT, () => {
             });
         }
     }, 2000);
-});}
+});
 
 function saveUserData(userId, data) {
     fs.writeFileSync(path.join(DATA_DIR, `user_${userId}.json`), JSON.stringify(data, null, 2));
@@ -676,7 +676,7 @@ app.listen(PORT, () => {
             });
         }
     }, 2000);
-});}
+});
 
 function saveUserData(userId, data) {
     fs.writeFileSync(path.join(DATA_DIR, `user_${userId}.json`), JSON.stringify(data, null, 2));
@@ -965,7 +965,7 @@ app.listen(PORT, () => {
             });
         }
     }, 2000);
-});}
+});
 
 function saveUserData(userId, data) {
     fs.writeFileSync(path.join(DATA_DIR, `user_${userId}.json`), JSON.stringify(data, null, 2));
@@ -1318,7 +1318,7 @@ app.listen(PORT, () => {
             });
         }
     }, 2000);
-});}
+});
 
 function saveUserData(userId, data) {
     fs.writeFileSync(path.join(DATA_DIR, `user_${userId}.json`), JSON.stringify(data, null, 2));
