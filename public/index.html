@@ -2,39 +2,790 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>∆xius — визуальный конструктор ботов</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>∆xius Bot · Telegram Конструктор v6.0</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
-        /* ============= RESET & BASE ============= */
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        :root {
+            --primary: #6366f1; --primary-dark: #4f46e5; --secondary: #a855f7;
+            --bg-light: #f8fafc; --bg-dark: #0f172a; --surface-light: #ffffff; --surface-dark: #1e293b;
+            --text-light: #1e293b; --text-dark: #f1f5f9; --border-light: #e2e8f0; --border-dark: #334155;
+            --success: #10b981; --warning: #f59e0b; --danger: #ef4444;
+            --radius-xl: 24px; --radius-lg: 16px; --radius-sm: 12px;
+            --transition: all 0.2s ease;
         }
+        body { font-family: 'Inter', sans-serif; background: var(--bg-light); color: var(--text-light); height: 100vh; overflow: hidden; }
+        body.dark { background: var(--bg-dark); color: var(--text-dark); }
+        
+        /* АВТОРИЗАЦИЯ */
+        .auth-container { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: var(--bg-dark); z-index: 1000; display: flex; align-items: center; justify-content: center; }
+        .auth-box { background: var(--surface-dark); border-radius: var(--radius-xl); padding: 40px; width: 400px; border: 1px solid var(--primary); }
+        .auth-box h2 { color: white; margin-bottom: 24px; text-align: center; }
+        .auth-box input, .auth-box select { width: 100%; padding: 14px; margin-bottom: 16px; border-radius: 40px; border: 1px solid var(--border-dark); background: #2d2d44; color: white; font-size: 14px; outline: none; }
+        .auth-box button { width: 100%; padding: 14px; background: var(--primary); border: none; border-radius: 40px; color: white; font-weight: 600; cursor: pointer; font-size: 16px; }
+        .auth-error { color: var(--danger); text-align: center; margin-top: 12px; font-size: 13px; }
+        .auth-link { color: var(--primary); cursor: pointer; text-align: center; margin-top: 16px; font-size: 14px; }
+        
+        /* ОСНОВНОЙ ЛЕЙАУТ */
+        .app { display: flex; width: 100%; height: 100vh; overflow: hidden; }
+        .sidebar { width: 280px; height: 100%; background: var(--surface-light); border-right: 1px solid var(--border-light); display: flex; flex-direction: column; z-index: 50; }
+        body.dark .sidebar { background: var(--surface-dark); border-color: var(--border-dark); }
+        @media (max-width: 768px) { .sidebar { position: fixed; left: 0; transform: translateX(-100%); transition: transform 0.3s; } .sidebar.open { transform: translateX(0); } }
+        .sidebar-header { padding: 24px 20px; border-bottom: 1px solid var(--border-light); background: linear-gradient(135deg, var(--primary), var(--secondary)); color: white; }
+        .sidebar-nav { flex: 1; padding: 20px 12px; overflow-y: auto; }
+        .nav-item { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: var(--radius-lg); cursor: pointer; color: var(--text-light); font-weight: 500; margin-bottom: 4px; }
+        body.dark .nav-item { color: var(--text-dark); }
+        .nav-item:hover { background: rgba(99,102,241,0.1); }
+        .nav-item.active { background: var(--primary); color: white; }
+        .sidebar-footer { padding: 20px; border-top: 1px solid var(--border-light); }
+        
+        .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; background: var(--bg-light); }
+        body.dark .main { background: var(--bg-dark); }
+        .topbar { padding: 12px 24px; display: flex; align-items: center; gap: 16px; border-bottom: 1px solid var(--border-light); background: var(--surface-light); }
+        body.dark .topbar { background: var(--surface-dark); }
+        .menu-btn { display: none; width: 44px; height: 44px; border-radius: 44px; background: var(--bg-light); align-items: center; justify-content: center; cursor: pointer; }
+        @media (max-width: 768px) { .menu-btn { display: flex; } }
+        .search { flex: 1; max-width: 400px; position: relative; }
+        .search i { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: #94a3b8; }
+        .search input { width: 100%; padding: 10px 16px 10px 44px; border-radius: 40px; border: 1px solid var(--border-light); background: var(--bg-light); color: var(--text-light); }
+        body.dark .search input { background: var(--bg-dark); border-color: var(--border-dark); color: var(--text-dark); }
+        .topbar-actions { margin-left: auto; display: flex; gap: 8px; }
+        .user-badge { display: flex; align-items: center; gap: 8px; padding: 6px 16px; border-radius: 40px; background: var(--bg-light); cursor: pointer; }
+        
+        .accounts-row { padding: 8px 24px; display: flex; gap: 8px; overflow-x: auto; border-bottom: 1px solid var(--border-light); background: var(--surface-light); }
+        body.dark .accounts-row { background: var(--surface-dark); }
+        .account-tag { padding: 6px 16px; border-radius: 40px; background: var(--bg-light); border: 1px solid var(--border-light); cursor: pointer; white-space: nowrap; font-size: 13px; display: flex; align-items: center; gap: 6px; }
+        .account-tag.active { background: var(--primary); color: white; }
+        .account-tag .status-dot { width: 8px; height: 8px; border-radius: 8px; background: var(--success); }
+        .mode-badge { font-size: 10px; padding: 2px 6px; border-radius: 20px; background: rgba(255,255,255,0.2); }
+        
+        .content { flex: 1; overflow-y: auto; padding: 24px; }
+        .page { display: none; }
+        .page.active { display: block; }
+        
+        .card-grid { display: flex; flex-direction: column; gap: 12px; }
+        .chat-card, .command-card { background: var(--surface-light); border-radius: var(--radius-lg); padding: 16px 20px; border: 1px solid var(--border-light); cursor: pointer; display: flex; align-items: center; }
+        body.dark .chat-card, body.dark .command-card { background: var(--surface-dark); border-color: var(--border-dark); }
+        .chat-avatar { width: 52px; height: 52px; border-radius: 52px; background: linear-gradient(135deg, var(--primary), var(--secondary)); display: flex; align-items: center; justify-content: center; color: white; font-size: 1.5rem; margin-right: 16px; }
+        .chat-info { flex: 1; } .chat-name { font-weight: 700; } .chat-last { font-size: 13px; opacity: 0.7; }
+        .chat-badge { background: var(--primary); color: white; padding: 4px 10px; border-radius: 40px; font-size: 12px; }
+        .command-card { justify-content: space-between; } .command-name { font-weight: 700; color: var(--primary); }
+        
+        .btn { padding: 10px 20px; border-radius: 40px; font-weight: 500; border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; background: var(--surface-light); color: var(--text-light); border: 1px solid var(--border-light); }
+        body.dark .btn { background: var(--surface-dark); color: var(--text-dark); border-color: var(--border-dark); }
+        .btn-primary { background: var(--primary); color: white; border: none; }
+        .btn-danger { background: var(--danger); color: white; border: none; }
+        .btn-icon { width: 44px; height: 44px; padding: 0; justify-content: center; }
+        
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); z-index: 200; display: flex; align-items: center; justify-content: center; opacity: 0; visibility: hidden; }
+        .modal-overlay.open { opacity: 1; visibility: visible; }
+        .modal { background: var(--surface-light); border-radius: var(--radius-xl); padding: 28px; max-width: 500px; width: 90%; max-height: 85vh; overflow-y: auto; }
+        body.dark .modal { background: var(--surface-dark); }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+        .modal-close { cursor: pointer; font-size: 24px; opacity: 0.6; }
+        .input { width: 100%; padding: 12px 16px; border-radius: 40px; border: 1px solid var(--border-light); background: var(--bg-light); color: var(--text-light); margin-bottom: 16px; outline: none; }
+        body.dark .input { background: var(--bg-dark); border-color: var(--border-dark); color: var(--text-dark); }
+        textarea.input { min-height: 100px; resize: vertical; }
+        
+        .toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 300; display: flex; flex-direction: column; gap: 8px; }
+        .toast { background: var(--surface-light); padding: 14px 20px; border-radius: 40px; box-shadow: 0 8px 20px rgba(0,0,0,0.15); display: flex; align-items: center; gap: 10px; cursor: pointer; animation: slideIn 0.3s; }
+        body.dark .toast { background: var(--surface-dark); }
+        @keyframes slideIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
+        
+        .empty-state { text-align: center; padding: 60px 20px; color: #94a3b8; }
+        .flex-row { display: flex; gap: 12px; align-items: center; margin-bottom: 16px; }
+        .menu-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 49; display: none; }
+        .menu-overlay.open { display: block; }
+        
+        /* Визуальный конструктор */
+        .flow-container { background: #1e1e2f; border-radius: var(--radius-lg); overflow: hidden; height: 400px; position: relative; margin-top: 16px; }
+        .flow-scroll { width: 100%; height: 100%; overflow: auto; cursor: grab; }
+        .flow-world { position: relative; width: 3000px; height: 3000px; background: linear-gradient(90deg, #2a2a40 1px, transparent 1px), linear-gradient(0deg, #2a2a40 1px, transparent 1px); background-size: 50px 50px; }
+        .flow-node { position: absolute; min-width: 160px; background: #2d2d44; border-radius: 16px; border: 1px solid #6366f1; cursor: grab; z-index: 10; }
+        .flow-node-header { padding: 8px 12px; background: #3d3d5c; border-radius: 16px 16px 0 0; color: white; display: flex; justify-content: space-between; font-size: 12px; }
+        .flow-node-content { padding: 8px 12px; color: #ccc; font-size: 11px; }
+        .flow-port { position: absolute; width: 16px; height: 16px; border-radius: 50%; background: white; border: 2px solid; cursor: crosshair; z-index: 20; }
+        .flow-port-in { left: -8px; top: 50%; transform: translateY(-50%); border-color: #10b981; }
+        .flow-port-out { right: -8px; top: 50%; transform: translateY(-50%); border-color: #ef4444; }
+        .flow-lines { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 5; }
+        .flow-toolbar { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
+    </style>
+</head>
+<body>
 
-        body {
-            font-family: system-ui, -apple-system, 'Inter', sans-serif;
-            background: #f5f7fb;
-            padding: 16px;
-            transition: background 0.3s, color 0.3s;
+<!-- АВТОРИЗАЦИЯ -->
+<div class="auth-container" id="authScreen">
+    <div class="auth-box" id="loginBox">
+        <h2>🔐 ∆xius Bot</h2>
+        <input type="text" id="loginUser" placeholder="Логин">
+        <input type="password" id="loginPass" placeholder="Пароль">
+        <button onclick="Auth.login()">Войти</button>
+        <div id="loginError" class="auth-error"></div>
+        <div class="auth-link" onclick="Auth.showRegister()">Создать аккаунт</div>
+    </div>
+    <div class="auth-box" id="registerBox" style="display:none;">
+        <h2>📝 Регистрация</h2>
+        <input type="text" id="regUser" placeholder="Логин">
+        <input type="password" id="regPass" placeholder="Пароль">
+        <input type="password" id="regPassConfirm" placeholder="Подтвердите пароль">
+        <button onclick="Auth.register()">Зарегистрироваться</button>
+        <div id="regError" class="auth-error"></div>
+        <div class="auth-link" onclick="Auth.showLogin()">← Назад ко входу</div>
+    </div>
+</div>
+
+<!-- ОСНОВНОЙ ИНТЕРФЕЙС -->
+<div id="mainApp" style="display:none;">
+<div class="app">
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header"><h2>∆xius Bot</h2><p style="opacity:0.8; font-size:13px;">v6.0 · <span id="sidebarUser"></span></p><p style="font-size:11px; opacity:0.7;"><span id="userModeBadge"></span></p></div>
+        <div class="sidebar-nav" id="sidebarNav"></div>
+        <div class="sidebar-footer">
+            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                <button class="btn btn-icon" onclick="UI.toggleTheme()"><i class="fas fa-moon" id="themeIcon"></i></button>
+                <button class="btn btn-icon" onclick="App.exportData()"><i class="fas fa-download"></i></button>
+                <button class="btn btn-icon" onclick="App.importData()"><i class="fas fa-upload"></i></button>
+                <button class="btn btn-icon" onclick="UI.openModal('helpModal')"><i class="fas fa-question"></i></button>
+                <button class="btn btn-icon btn-danger" onclick="Auth.logout()"><i class="fas fa-sign-out-alt"></i></button>
+            </div>
+        </div>
+    </div>
+    <div class="menu-overlay" id="menuOverlay" onclick="UI.closeMenu()"></div>
+    
+    <div class="main">
+        <div class="topbar">
+            <div class="menu-btn" onclick="UI.openMenu()"><i class="fas fa-bars"></i></div>
+            <div class="search"><i class="fas fa-search"></i><input type="text" id="globalSearch" placeholder="Поиск..."></div>
+            <div class="topbar-actions">
+                <button class="btn btn-icon" onclick="UI.openModal('statsModal')"><i class="fas fa-chart-bar"></i></button>
+                <button class="btn btn-icon" onclick="UI.openModal('quickActionsModal')"><i class="fas fa-bolt"></i></button>
+                <div class="user-badge"><i class="fas fa-user"></i><span id="topbarUser"></span></div>
+            </div>
+        </div>
+        
+        <div class="accounts-row" id="accountsRow"></div>
+        
+        <div class="content" id="pageContainer"></div>
+    </div>
+</div>
+</div>
+
+<!-- МОДАЛЬНЫЕ ОКНА -->
+<div class="modal-overlay" id="addAccountModal"><div class="modal"><div class="modal-header"><h3>➕ Добавить бота</h3><span class="modal-close" onclick="UI.closeModal('addAccountModal')">&times;</span></div><input type="text" id="botName" class="input" placeholder="Имя бота"><input type="text" id="botToken" class="input" placeholder="Токен Telegram (от @BotFather)"><button class="btn btn-primary" onclick="App.addBot()" style="width:100%;">Добавить и активировать</button><p style="font-size:12px; opacity:0.7; margin-top:12px;">После добавления бот автоматически зарегистрирует webhook</p></div></div>
+
+<div class="modal-overlay" id="commandModal"><div class="modal" style="max-width:700px;"><div class="modal-header"><h3>✏️ Команда</h3><span class="modal-close" onclick="UI.closeModal('commandModal')">&times;</span></div><div style="display:flex; gap:8px; margin-bottom:16px;"><button class="btn" id="textModeTab" onclick="UI.switchEditorMode('text')">📝 Текст</button><button class="btn" id="visualModeTab" onclick="UI.switchEditorMode('visual')">🎨 Визуальный</button></div><div id="textEditorPanel"><input type="text" id="cmdName" class="input" placeholder="/команда (например: /start)"><textarea id="cmdResponse" class="input" rows="4" placeholder="Ответ бота... Можно использовать {user}, {user_id}, {date}, {time}"></textarea><div id="inlineButtonsContainer"></div><button class="btn btn-primary btn-sm" onclick="UI.addInlineButton()" style="margin:8px 0;">+ Добавить кнопку</button></div><div id="visualEditorPanel" style="display:none;"><div class="flow-toolbar"><button class="btn" onclick="flowEngine.addNode('message')">📝 Сообщение</button><button class="btn" onclick="flowEngine.addNode('condition')">🔀 Условие</button><button class="btn" onclick="flowEngine.addNode('variable')">📊 Переменная</button><button class="btn" onclick="flowEngine.addNode('delay')">⏱️ Задержка</button><button class="btn" onclick="flowEngine.addNode('http')">🌐 HTTP</button></div><div class="flow-container"><div class="flow-scroll" id="flowScroll"><div class="flow-world" id="flowWorld"></div><svg class="flow-lines" id="flowLines"></svg></div></div></div><button class="btn btn-primary" onclick="App.saveCommand()" style="width:100%; margin-top:20px;">Сохранить</button></div></div>
+
+<div class="modal-overlay" id="profileModal"><div class="modal"><div class="modal-header"><h3>🤖 Профиль бота</h3><span class="modal-close" onclick="UI.closeModal('profileModal')">&times;</span></div><input type="text" id="profileName" class="input" placeholder="Имя бота"><textarea id="profileBio" class="input" rows="3" placeholder="Описание"></textarea><textarea id="profileGreeting" class="input" rows="2" placeholder="Приветствие (для /start)"></textarea><textarea id="profileHelp" class="input" rows="2" placeholder="Текст для /help"></textarea><textarea id="profileWelcome" class="input" rows="2" placeholder="Приветствие при добавлении в группу"></textarea><button class="btn btn-primary" onclick="App.saveProfile()" style="width:100%;">Сохранить</button></div></div>
+
+<div class="modal-overlay" id="chatModal"><div class="modal" style="max-width:700px;"><div class="modal-header"><h3>💬 Чат с <span id="chatUserName"></span></h3><span class="modal-close" onclick="UI.closeModal('chatModal')">&times;</span></div><div id="chatMessages" style="max-height:400px; overflow-y:auto; margin-bottom:16px;"></div><div class="flex-row"><input type="text" id="chatMessageInput" class="input" placeholder="Введите сообщение..."><button class="btn btn-primary" onclick="App.sendChatMessage()">📤</button></div></div></div>
+
+<div class="modal-overlay" id="adminModal"><div class="modal" style="max-width:600px;"><div class="modal-header"><h3>👑 Админ-панель</h3><span class="modal-close" onclick="UI.closeModal('adminModal')">&times;</span></div><div id="adminUsersList" style="max-height:250px; overflow-y:auto;"></div><div style="margin-top:20px;"><h4>Создать пользователя</h4><input type="text" id="newUsername" class="input" placeholder="Логин"><input type="password" id="newPassword" class="input" placeholder="Пароль"><label>Режим доступа:</label><select id="newUserMode" class="input"><option value="multi">Мульти (все функции)</option><option value="chat">Только чат</option><option value="constructor">Только конструктор</option></select><button class="btn btn-primary" onclick="App.createUser()" style="width:100%;">Создать пользователя</button><div id="adminError" style="margin-top:12px;"></div></div></div></div>
+
+<div class="modal-overlay" id="statsModal"><div class="modal"><div class="modal-header"><h3>📊 Статистика</h3><span class="modal-close" onclick="UI.closeModal('statsModal')">&times;</span></div><div id="statsContent">Загрузка...</div></div></div>
+
+<div class="modal-overlay" id="helpModal"><div class="modal"><div class="modal-header"><h3>❓ Справка</h3><span class="modal-close" onclick="UI.closeModal('helpModal')">&times;</span></div><p><b>Ctrl+S</b> — сохранить, <b>Ctrl+F</b> — поиск, <b>Esc</b> — закрыть</p><p><b>Переменные в ответах:</b> {user}, {user_id}, {date}, {time}, {chat_id}</p><p><b>Режимы:</b> Чат / Конструктор / Мульти</p><p><b>Токен бота:</b> получить у @BotFather</p><p><b>Webhook:</b> автоматически настраивается при добавлении бота</p></div></div>
+
+<div class="modal-overlay" id="quickActionsModal"><div class="modal"><div class="modal-header"><h3>⚡ Действия</h3><span class="modal-close" onclick="UI.closeModal('quickActionsModal')">&times;</span></div><button class="btn" onclick="App.quickAction('clearCache')" style="width:100%; margin-bottom:8px;">🗑️ Очистить кэш</button><button class="btn" onclick="App.quickAction('backup')" style="width:100%; margin-bottom:8px;">💾 Скачать бэкап</button><button class="btn btn-danger" onclick="App.quickAction('reset')" style="width:100%;">⚠️ Сбросить все данные</button></div></div>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<script>
+// ========== КОНФИГУРАЦИЯ API ==========
+const API_BASE = window.location.origin; // или укажите ваш URL сервера
+// const API_BASE = 'https://axius-bot.onrender.com';
+
+// ========== ХРАНИЛИЩЕ ==========
+const Store = {
+    getUsers: () => { try { return JSON.parse(localStorage.getItem('axius_users') || '{"axius":{"pass":"axiusaxius12","mode":"multi"}}'); } catch { return {"axius":{"pass":"axiusaxius12","mode":"multi"}}; } },
+    saveUsers: (u) => localStorage.setItem('axius_users', JSON.stringify(u)),
+};
+
+// ========== API ЗАПРОСЫ ==========
+const API = {
+    headers: () => ({ 'Content-Type': 'application/json', 'login': App.user, 'sessiontoken': App.sessionToken }),
+    
+    async request(method, url, body = null) {
+        const options = { method, headers: this.headers() };
+        if (body) options.body = JSON.stringify(body);
+        const res = await fetch(API_BASE + url, options);
+        if (!res.ok) throw new Error(await res.text());
+        return res.json();
+    },
+    
+    async register(login, password) {
+        return fetch(API_BASE + '/api/register', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({login, password}) }).then(r => r.json());
+    },
+    
+    async login(login, password) {
+        return fetch(API_BASE + '/api/login', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({login, password}) }).then(r => r.json());
+    },
+    
+    async verify(login, token) {
+        return fetch(API_BASE + '/api/verify', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({login, sessionToken: token}) }).then(r => r.json());
+    },
+    
+    getAccounts: () => API.request('GET', '/api/user/accounts'),
+    addAccount: (acc) => API.request('POST', '/api/user/accounts', acc),
+    deleteAccount: (id) => API.request('DELETE', `/api/user/accounts/${id}`),
+    getCommands: (accId) => API.request('GET', `/api/user/commands/${accId}`),
+    saveCommands: (accId, cmds) => API.request('POST', `/api/user/commands/${accId}`, cmds),
+    getProfile: (accId) => API.request('GET', `/api/user/profile/${accId}`),
+    saveProfile: (accId, profile) => API.request('POST', `/api/user/profile/${accId}`, profile),
+    getChats: (accId) => API.request('GET', `/api/user/chats/${accId}`),
+    deleteChat: (chatKey) => API.request('DELETE', `/api/user/chat/${chatKey}`),
+    getStats: () => API.request('GET', '/api/user/stats'),
+    exportData: () => API.request('GET', '/api/user/export'),
+    clearData: () => API.request('DELETE', '/api/user/data'),
+};
+
+// ========== СОСТОЯНИЕ ==========
+window.App = {
+    user: null,
+    sessionToken: null,
+    userMode: 'multi',
+    accounts: {},
+    activeBot: null,
+    commands: {},
+    profiles: {},
+    chats: {},
+    theme: localStorage.getItem('theme') || 'dark',
+    currentEditCommand: null,
+    editorMode: 'text',
+    tempButtons: [],
+    
+    async init() {
+        try {
+            this.accounts = await API.getAccounts() || {};
+            if (Object.keys(this.accounts).length && !this.activeBot) {
+                this.activeBot = Object.keys(this.accounts)[0];
+            }
+            await this.loadBotData();
+            UI.render();
+            UI.applyTheme();
+        } catch (e) {
+            console.error('Init error:', e);
+            UI.toast('Ошибка загрузки данных', 'error');
         }
-
-        body.dark {
-            background: #0a0c15;
-            color: #eef3ff;
+    },
+    
+    async loadBotData() {
+        if (this.activeBot) {
+            try {
+                this.commands[this.activeBot] = await API.getCommands(this.activeBot) || [];
+                this.profiles[this.activeBot] = await API.getProfile(this.activeBot) || {};
+                this.chats[this.activeBot] = await API.getChats(this.activeBot) || [];
+            } catch (e) {}
         }
-
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
+    },
+    
+    async addBot() {
+        const name = document.getElementById('botName').value.trim() || 'Бот';
+        const token = document.getElementById('botToken').value.trim();
+        if (!token) return UI.toast('Введите токен', 'error');
+        const id = Date.now().toString(36);
+        try {
+            await API.addAccount({ id, token, name });
+            this.accounts = await API.getAccounts();
+            if (!this.activeBot) this.activeBot = id;
+            await this.loadBotData();
+            UI.closeModal('addAccountModal');
+            UI.render();
+            UI.toast('Бот добавлен! Webhook активирован', 'success');
+        } catch (e) {
+            UI.toast('Ошибка добавления', 'error');
         }
+    },
+    
+    async deleteAccount(id) {
+        if (!confirm('Удалить бота?')) return;
+        try {
+            await API.deleteAccount(id);
+            this.accounts = await API.getAccounts();
+            if (this.activeBot === id) this.activeBot = Object.keys(this.accounts)[0] || null;
+            UI.render();
+            UI.toast('Бот удалён', 'success');
+        } catch (e) {
+            UI.toast('Ошибка удаления', 'error');
+        }
+    },
+    
+    async saveCommand() {
+        const name = document.getElementById('cmdName').value.trim();
+        const resp = document.getElementById('cmdResponse').value.trim();
+        if (!name || !resp) return UI.toast('Заполните поля', 'error');
+        if (!this.activeBot) return UI.toast('Выберите бота', 'error');
+        
+        const cmds = this.commands[this.activeBot] || [];
+        const cmd = { name, response: resp, buttons: this.tempButtons, flowNodes: flowEngine.nodes, flowConnections: flowEngine.connections };
+        
+        if (this.currentEditCommand !== null) {
+            cmds[this.currentEditCommand] = cmd;
+        } else {
+            cmds.push(cmd);
+        }
+        
+        try {
+            await API.saveCommands(this.activeBot, cmds);
+            this.commands[this.activeBot] = cmds;
+            UI.closeModal('commandModal');
+            UI.renderPage();
+            UI.toast('Команда сохранена', 'success');
+        } catch (e) {
+            UI.toast('Ошибка сохранения', 'error');
+        }
+    },
+    
+    async saveProfile() {
+        if (!this.activeBot) return UI.toast('Выберите бота', 'error');
+        const profile = {
+            name: document.getElementById('profileName').value,
+            bio: document.getElementById('profileBio').value,
+            greeting: document.getElementById('profileGreeting').value,
+            helpText: document.getElementById('profileHelp').value,
+            welcomeMessage: document.getElementById('profileWelcome').value
+        };
+        try {
+            await API.saveProfile(this.activeBot, profile);
+            this.profiles[this.activeBot] = profile;
+            UI.closeModal('profileModal');
+            UI.toast('Профиль сохранён', 'success');
+        } catch (e) {
+            UI.toast('Ошибка сохранения', 'error');
+        }
+    },
+    
+    async deleteCommand(idx) {
+        if (!confirm('Удалить команду?')) return;
+        const cmds = this.commands[this.activeBot] || [];
+        cmds.splice(idx, 1);
+        await API.saveCommands(this.activeBot, cmds);
+        this.commands[this.activeBot] = cmds;
+        UI.renderPage();
+    },
+    
+    async deleteChat(chatKey) {
+        if (!confirm('Удалить чат?')) return;
+        await API.deleteChat(chatKey);
+        this.chats[this.activeBot] = await API.getChats(this.activeBot);
+        UI.renderPage();
+    },
+    
+    async sendChatMessage() {
+        // Отправка сообщения через бота (можно реализовать через API)
+        UI.toast('Отправка сообщений через веб-интерфейс в разработке', 'info');
+    },
+    
+    async createUser() {
+        if (this.user !== 'axius') return UI.toast('Только админ', 'error');
+        const u = document.getElementById('newUsername').value.trim();
+        const p = document.getElementById('newPassword').value;
+        const mode = document.getElementById('newUserMode').value;
+        if (!u || !p) { document.getElementById('adminError').innerText = 'Заполните поля'; return; }
+        
+        const users = Store.getUsers();
+        if (users[u]) { document.getElementById('adminError').innerText = 'Пользователь существует'; return; }
+        users[u] = { pass: p, mode };
+        Store.saveUsers(users);
+        
+        try {
+            await API.register(u, p);
+        } catch (e) {}
+        
+        document.getElementById('newUsername').value = '';
+        document.getElementById('newPassword').value = '';
+        UI.openAdminModal();
+        UI.toast('Пользователь создан', 'success');
+    },
+    
+    async deleteUser(u) {
+        const users = Store.getUsers();
+        delete users[u];
+        Store.saveUsers(users);
+        UI.openAdminModal();
+        UI.toast('Пользователь удалён', 'success');
+    },
+    
+    async exportData() {
+        try {
+            const data = await API.exportData();
+            const blob = new Blob([JSON.stringify(data)], {type: 'application/json'});
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `axius_${this.user}.json`;
+            a.click();
+            UI.toast('Экспортировано', 'success');
+        } catch (e) {
+            UI.toast('Ошибка экспорта', 'error');
+        }
+    },
+    
+    async importData() {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.json';
+        input.onchange = async e => {
+            const f = e.target.files[0];
+            if (f) {
+                const r = new FileReader();
+                r.onload = async ev => {
+                    try {
+                        // Импорт можно реализовать через API
+                        UI.toast('Импорт через файл в разработке', 'info');
+                    } catch (ex) {
+                        UI.toast('Ошибка импорта', 'error');
+                    }
+                };
+                r.readAsText(f);
+            }
+        };
+        input.click();
+    },
+    
+    async quickAction(a) {
+        if (a === 'clearCache') {
+            localStorage.clear();
+            location.reload();
+        } else if (a === 'backup') {
+            await this.exportData();
+        } else if (a === 'reset') {
+            if (confirm('Сбросить все данные на сервере?')) {
+                try {
+                    await API.clearData();
+                    location.reload();
+                } catch (e) {
+                    UI.toast('Ошибка', 'error');
+                }
+            }
+        }
+        UI.closeModal('quickActionsModal');
+    }
+};
 
-        /* ============= КАРТОЧКИ ============= */
-        .card {
-            background: white;
-            border-radius: 24px;
-            padding: 20px;
-            margin-bottom: 20px;
+// ========== АВТОРИЗАЦИЯ ==========
+window.Auth = {
+    async login() {
+        const u = document.getElementById('loginUser').value.trim();
+        const p = document.getElementById('loginPass').value;
+        
+        const users = Store.getUsers();
+        if (users[u] && users[u].pass === p) {
+            try {
+                const res = await API.login(u, p);
+                if (res.success) {
+                    App.user = u;
+                    App.sessionToken = res.sessionToken;
+                    App.userMode = users[u].mode || 'multi';
+                    localStorage.setItem('axius_current_user', u);
+                    localStorage.setItem('axius_session_token', res.sessionToken);
+                    document.getElementById('authScreen').style.display = 'none';
+                    document.getElementById('mainApp').style.display = 'block';
+                    await App.init();
+                }
+            } catch (e) {
+                document.getElementById('loginError').innerText = 'Ошибка сервера';
+            }
+        } else {
+            document.getElementById('loginError').innerText = 'Неверный логин или пароль';
+        }
+    },
+    
+    async register() {
+        const u = document.getElementById('regUser').value.trim();
+        const p = document.getElementById('regPass').value;
+        const p2 = document.getElementById('regPassConfirm').value;
+        if (!u || !p) return document.getElementById('regError').innerText = 'Заполните поля';
+        if (p !== p2) return document.getElementById('regError').innerText = 'Пароли не совпадают';
+        
+        try {
+            const res = await API.register(u, p);
+            if (res.success) {
+                const users = Store.getUsers();
+                users[u] = { pass: p, mode: 'multi' };
+                Store.saveUsers(users);
+                UI.toast('Аккаунт создан! Войдите', 'success');
+                this.showLogin();
+            } else {
+                document.getElementById('regError').innerText = res.error || 'Ошибка';
+            }
+        } catch (e) {
+            document.getElementById('regError').innerText = 'Ошибка сервера';
+        }
+    },
+    
+    showLogin() { document.getElementById('loginBox').style.display = 'block'; document.getElementById('registerBox').style.display = 'none'; },
+    showRegister() { document.getElementById('loginBox').style.display = 'none'; document.getElementById('registerBox').style.display = 'block'; },
+    logout() { localStorage.removeItem('axius_current_user'); localStorage.removeItem('axius_session_token'); location.reload(); }
+};
+
+// ========== ВИЗУАЛЬНЫЙ КОНСТРУКТОР ==========
+const flowEngine = {
+    nodes: [], connections: [], nextId: 1,
+    addNode: (type) => {
+        const t = { message: { title: '📝', data: { text: 'Привет!' } }, condition: { title: '🔀', data: { left: '', op: '==', right: '' } }, variable: { title: '📊', data: { action: 'set', name: '', value: '' } }, delay: { title: '⏱️', data: { seconds: 1 } }, http: { title: '🌐', data: { url: '', method: 'GET' } } }[type] || { title: '📝', data: { text: '' } };
+        this.nodes.push({ id: (this.nextId++).toString(), type, x: 200+Math.random()*200, y: 150+Math.random()*200, width: 140, height: 60, title: t.title, data: JSON.parse(JSON.stringify(t.data)) });
+        this.render();
+    },
+    render: () => {
+        const w = document.getElementById('flowWorld'), s = document.getElementById('flowLines');
+        if(!w||!s) return;
+        w.innerHTML = ''; s.innerHTML = '';
+        this.nodes.forEach(n => {
+            const d = document.createElement('div'); d.className = 'flow-node'; d.id = `fn-${n.id}`; d.style.left = n.x+'px'; d.style.top = n.y+'px'; d.style.width = n.width+'px';
+            d.innerHTML = `<div class="flow-node-header"><span>${n.title}</span><button onclick="flowEngine.deleteNode('${n.id}')" style="background:none;border:none;color:#ff6b6b;">✖</button></div><div class="flow-node-content">${n.data.text||''}</div>`;
+            w.appendChild(d);
+            const ip = document.createElement('div'); ip.className = 'flow-port flow-port-in'; ip.dataset.node = n.id; d.appendChild(ip);
+            const op = document.createElement('div'); op.className = 'flow-port flow-port-out'; op.dataset.node = n.id; d.appendChild(op);
+            d.addEventListener('mousedown', e => this.startDrag(e, n.id));
+            d.addEventListener('dblclick', () => this.editNode(n.id));
+        });
+        document.querySelectorAll('.flow-port-out').forEach(p => p.addEventListener('mousedown', e => this.startConnection(e, p)));
+        this.connections.forEach(c => {
+            const from = this.nodes.find(n=>n.id===c.from), to = this.nodes.find(n=>n.id===c.to);
+            if(from&&to){ const l = document.createElementNS('http://www.w3.org/2000/svg','line'); l.setAttribute('x1', from.x+from.width); l.setAttribute('y1', from.y+from.height/2); l.setAttribute('x2', to.x); l.setAttribute('y2', to.y+to.height/2); l.setAttribute('stroke','#6366f1'); l.setAttribute('stroke-width','2'); s.appendChild(l); }
+        });
+    },
+    deleteNode: (id) => { this.nodes = this.nodes.filter(n=>n.id!==id); this.connections = this.connections.filter(c=>c.from!==id&&c.to!==id); this.render(); },
+    editNode: (id) => { const n = this.nodes.find(n=>n.id===id); if(n?.type==='message'){ const t = prompt('Текст:', n.data.text); if(t) n.data.text = t; this.render(); } },
+    startDrag: (e, id) => { e.preventDefault(); const n = this.nodes.find(n=>n.id===id); if(!n) return; const sx=e.clientX, sy=e.clientY, ox=n.x, oy=n.y; const m = e => { n.x = Math.max(10, ox + e.clientX - sx); n.y = Math.max(10, oy + e.clientY - sy); document.getElementById(`fn-${id}`).style.left = n.x+'px'; document.getElementById(`fn-${id}`).style.top = n.y+'px'; this.render(); }; const u = () => { window.removeEventListener('mousemove', m); window.removeEventListener('mouseup', u); }; window.addEventListener('mousemove', m); window.addEventListener('mouseup', u); },
+    startConnection: (e, p) => { e.preventDefault(); const from = p.dataset.node; const u = e => { const t = document.elementFromPoint(e.clientX, e.clientY); const to = t?.closest?.('.flow-port-in'); if(to){ const tid = to.dataset.node; if(from !== tid){ this.connections.push({ from, to: tid }); this.render(); } } window.removeEventListener('mouseup', u); }; window.addEventListener('mouseup', u); }
+};
+
+// ========== UI ==========
+window.UI = {
+    currentPage: 'home',
+    
+    async render() {
+        document.getElementById('sidebarUser').textContent = App.user;
+        document.getElementById('topbarUser').textContent = App.user;
+        const modeNames = { multi: 'Мульти', chat: 'Чат', constructor: 'Конструктор' };
+        document.getElementById('userModeBadge').textContent = `Режим: ${modeNames[App.userMode]}`;
+        this.renderAccounts();
+        this.renderSidebar();
+        await this.renderPage();
+    },
+    
+    renderAccounts() {
+        const row = document.getElementById('accountsRow');
+        row.innerHTML = Object.values(App.accounts).map(b => `
+            <div class="account-tag ${App.activeBot===b.id?'active':''}" onclick="UI.selectBot('${b.id}')">
+                <span class="status-dot"></span> 🤖 ${b.name}
+            </div>
+        `).join('') + `<div class="account-tag" onclick="UI.openModal('addAccountModal')">➕ Добавить</div>`;
+    },
+    
+    async selectBot(id) {
+        App.activeBot = id;
+        await App.loadBotData();
+        this.renderAccounts();
+        await this.renderPage();
+    },
+    
+    renderSidebar() {
+        const nav = document.getElementById('sidebarNav');
+        let items = [];
+        if (App.userMode === 'chat') items = [{ id: 'home', icon: 'comments', name: 'Чаты' }];
+        else if (App.userMode === 'constructor') items = [{ id: 'constructor', icon: 'magic', name: 'Команды' }];
+        else items = [{ id: 'home', icon: 'comments', name: 'Чаты' }, { id: 'constructor', icon: 'magic', name: 'Команды' }, { id: 'profile', icon: 'user-circle', name: 'Профиль' }];
+        if (App.user === 'axius') items.push({ id: 'admin', icon: 'crown', name: 'Админ' });
+        
+        nav.innerHTML = items.map(i => `<div class="nav-item ${this.currentPage===i.id?'active':''}" onclick="UI.setPage('${i.id}')"><i class="fas fa-${i.icon}"></i>${i.name}</div>`).join('');
+    },
+    
+    setPage(page) {
+        this.currentPage = page;
+        this.renderSidebar();
+        this.renderPage();
+        this.closeMenu();
+    },
+    
+    async renderPage() {
+        const c = document.getElementById('pageContainer');
+        const p = this.currentPage;
+        
+        if (p === 'home' && App.activeBot) {
+            const chats = App.chats[App.activeBot] || [];
+            c.innerHTML = `<h2>💬 Чаты</h2><div class="card-grid">` + 
+                chats.map(ch => `<div class="chat-card" onclick="UI.openChat('${ch.id}')"><div class="chat-avatar">👤</div><div class="chat-info"><div class="chat-name">${ch.userName || 'Пользователь'}</div><div class="chat-last">ID: ${ch.chatId}</div></div><button class="btn btn-danger btn-icon" onclick="event.stopPropagation(); App.deleteChat('${ch.id}')"><i class="fas fa-trash"></i></button></div>`).join('') +
+                (chats.length ? '' : '<div class="empty-state">Нет чатов. Напишите боту в Telegram!</div>') + `</div>`;
+        } else if (p === 'constructor' && App.activeBot) {
+            const cmds = App.commands[App.activeBot] || [];
+            c.innerHTML = `<div style="display:flex; justify-content:space-between;"><h2>📋 Команды</h2><button class="btn btn-primary" onclick="UI.openCommandModal()">➕ Создать</button></div><div class="card-grid">` +
+                cmds.map((cmd, i) => `<div class="command-card"><span><span class="command-name">${cmd.name}</span><br><small>${(cmd.response||'').substring(0,50)}...</small></span><div><button class="btn btn-icon" onclick="UI.openCommandModal(${i})"><i class="fas fa-edit"></i></button><button class="btn btn-icon btn-danger" onclick="App.deleteCommand(${i})"><i class="fas fa-trash"></i></button></div></div>`).join('') +
+                (cmds.length ? '' : '<div class="empty-state">Нет команд</div>') + `</div>`;
+        } else if (p === 'profile' && App.activeBot) {
+            const pr = App.profiles[App.activeBot] || {};
+            c.innerHTML = `<h2>🤖 Профиль бота</h2><div style="background:var(--surface-light); border-radius:16px; padding:24px;"><p><b>Имя:</b> ${pr.name||'—'}</p><p><b>Описание:</b> ${pr.bio||'—'}</p><p><b>/start:</b> ${pr.greeting||'—'}</p><p><b>/help:</b> ${pr.helpText||'—'}</p><button class="btn btn-primary" onclick="UI.openProfileModal()">Редактировать</button></div>`;
+        } else if (p === 'admin' && App.user === 'axius') {
+            c.innerHTML = `<h2>👑 Админ-панель</h2><button class="btn btn-primary" onclick="UI.openAdminModal()">Управление пользователями</button>`;
+        } else {
+            c.innerHTML = `<div class="empty-state">Выберите бота</div>`;
+        }
+    },
+    
+    openCommandModal(idx = null) {
+        App.currentEditCommand = idx;
+        if (idx !== null && App.activeBot) {
+            const cmd = App.commands[App.activeBot][idx];
+            document.getElementById('cmdName').value = cmd.name || '';
+            document.getElementById('cmdResponse').value = cmd.response || '';
+            App.tempButtons = cmd.buttons || [];
+            flowEngine.nodes = cmd.flowNodes || [];
+            flowEngine.connections = cmd.flowConnections || [];
+        } else {
+            document.getElementById('cmdName').value = '';
+            document.getElementById('cmdResponse').value = '';
+            App.tempButtons = [];
+            flowEngine.nodes = [];
+            flowEngine.connections = [];
+        }
+        this.renderInlineButtons();
+        this.switchEditorMode('text');
+        this.openModal('commandModal');
+    },
+    
+    renderInlineButtons: () => {
+        const c = document.getElementById('inlineButtonsContainer');
+        c.innerHTML = App.tempButtons.map((b, i) => `
+            <div class="flex-row">
+                <input class="input" value="${b.text}" onchange="App.tempButtons[${i}].text=this.value" placeholder="Текст">
+                <input class="input" value="${b.data}" onchange="App.tempButtons[${i}].data=this.value" placeholder="Данные">
+                <select class="input" onchange="App.tempButtons[${i}].type=this.value" style="width:auto;">
+                    <option value="callback" ${b.type==='callback'?'selected':''}>Callback</option>
+                    <option value="url" ${b.type==='url'?'selected':''}>URL</option>
+                </select>
+                <button class="btn btn-danger" onclick="App.tempButtons.splice(${i},1);UI.renderInlineButtons()">✖</button>
+            </div>
+        `).join('');
+    },
+    
+    addInlineButton: () => { App.tempButtons.push({ text: 'Кнопка', data: 'data', type: 'callback' }); UI.renderInlineButtons(); },
+    
+    switchEditorMode: (m) => {
+        App.editorMode = m;
+        document.getElementById('textEditorPanel').style.display = m==='text'?'block':'none';
+        document.getElementById('visualEditorPanel').style.display = m==='visual'?'block':'none';
+        document.getElementById('textModeTab').className = m==='text'?'btn btn-primary':'btn';
+        document.getElementById('visualModeTab').className = m==='visual'?'btn btn-primary':'btn';
+        if (m==='visual') setTimeout(() => flowEngine.render(), 50);
+    },
+    
+    openProfileModal() {
+        const p = App.profiles[App.activeBot] || {};
+        document.getElementById('profileName').value = p.name || '';
+        document.getElementById('profileBio').value = p.bio || '';
+        document.getElementById('profileGreeting').value = p.greeting || '';
+        document.getElementById('profileHelp').value = p.helpText || '';
+        document.getElementById('profileWelcome').value = p.welcomeMessage || '';
+        this.openModal('profileModal');
+    },
+    
+    openChat(chatId) {
+        const chat = App.chats[App.activeBot]?.find(c => c.id === chatId);
+        if (chat) {
+            document.getElementById('chatUserName').textContent = chat.userName || 'Пользователь';
+            document.getElementById('chatMessages').innerHTML = (chat.messages || []).map(m => 
+                `<div style="margin-bottom:8px;"><b>${m.type==='incoming'?'👤':'🤖'}:</b> ${m.text}</div>`
+            ).join('');
+            this.openModal('chatModal');
+        }
+    },
+    
+    async openAdminModal() {
+        const users = Store.getUsers();
+        const div = document.getElementById('adminUsersList');
+        div.innerHTML = Object.entries(users).map(([u, d]) => `
+            <div class="flex-row" style="justify-content:space-between;">
+                <span><b>${u}</b> (${d.mode})</span>
+                ${u!=='axius'?`<button class="btn btn-danger" onclick="App.deleteUser('${u}')">Удалить</button>`:'<span class="badge">Главный</span>'}
+            </div>
+        `).join('');
+        this.openModal('adminModal');
+    },
+    
+    async openStatsModal() {
+        try {
+            const stats = await API.getStats();
+            document.getElementById('statsContent').innerHTML = `
+                <p><b>Всего чатов:</b> ${stats.totalChats}</p>
+                <p><b>Всего сообщений:</b> ${stats.totalMessages}</p>
+                <p><b>Аккаунтов ботов:</b> ${stats.accounts}</p>
+                <p><b>Команд:</b> ${stats.commands}</p>
+            `;
+        } catch (e) {
+            document.getElementById('statsContent').innerHTML = 'Ошибка загрузки';
+        }
+        this.openModal('statsModal');
+    },
+    
+    openModal(id) {
+        if (id === 'statsModal') this.openStatsModal();
+        document.getElementById(id).classList.add('open');
+    },
+    closeModal(id) { document.getElementById(id).classList.remove('open'); },
+    openMenu() { document.getElementById('sidebar').classList.add('open'); document.getElementById('menuOverlay').classList.add('open'); },
+    closeMenu() { document.getElementById('sidebar').classList.remove('open'); document.getElementById('menuOverlay').classList.remove('open'); },
+    
+    toggleTheme() {
+        document.body.classList.toggle('dark');
+        const isDark = document.body.classList.contains('dark');
+        localStorage.setItem('theme', isDark?'dark':'light');
+        document.getElementById('themeIcon').className = isDark?'fas fa-sun':'fas fa-moon';
+    },
+    applyTheme() {
+        const t = localStorage.getItem('theme') || 'dark';
+        document.body.classList.toggle('dark', t==='dark');
+        document.getElementById('themeIcon').className = t==='dark'?'fas fa-sun':'fas fa-moon';
+    },
+    
+    toast(msg, type='info') {
+        const c = document.getElementById('toastContainer');
+        const t = document.createElement('div');
+        t.className = 'toast';
+        t.innerHTML = `<i class="fas fa-${type==='success'?'check-circle':type==='error'?'exclamation-circle':'info-circle'}"></i><span>${msg}</span>`;
+        t.onclick = () => t.remove();
+        c.appendChild(t);
+        setTimeout(() => t.remove(), 4000);
+    }
+};
+
+// Горячие клавиши
+document.addEventListener('keydown', e => {
+    if (e.ctrlKey && e.key === 's') { e.preventDefault(); if (document.getElementById('commandModal').classList.contains('open')) App.saveCommand(); }
+    if (e.ctrlKey && e.key === 'f') { e.preventDefault(); document.getElementById('globalSearch')?.focus(); }
+    if (e.key === 'Escape') { document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('open')); UI.closeMenu(); }
+});
+
+document.getElementById('globalSearch')?.addEventListener('input', e => {
+    const t = e.target.value.toLowerCase();
+    document.querySelectorAll('.chat-card, .command-card').forEach(c => c.style.display = c.textContent.toLowerCase().includes(t) ? 'flex' : 'none');
+});
+
+// Автозагрузка
+const savedUser = localStorage.getItem('axius_current_user');
+const savedToken = localStorage.getItem('axius_session_token');
+
+if (savedUser && savedToken) {
+    API.verify(savedUser, savedToken).then(async res => {
+        if (res.success) {
+            App.user = savedUser;
+            App.sessionToken = savedToken;
+            const users = Store.getUsers();
+            App.userMode = users[savedUser]?.mode || 'multi';
+            document.getElementById('authScreen').style.display = 'none';
+            document.getElementById('mainApp').style.display = 'block';
+            await App.init();
+        } else {
+            localStorage.removeItem('axius_session_token');
+        }
+    }).catch(() => {});
+}
+
+window.flowEngine = flowEngine;
+</script>
+</body>
+</html>            margin-bottom: 20px;
             box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
             transition: background 0.3s;
         }
