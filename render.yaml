@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: axius-bot
+    env: node
+    region: ohio
+    buildCommand: npm install
+    startCommand: node server.js
+    envVars:
+      - key: PORT
+        value: "3000"
+      - key: RENDER_EXTERNAL_URL
+        value: "https://axius-bot.onrender.com"
